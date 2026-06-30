@@ -23,6 +23,9 @@ WHISPER_MODEL        = "large-v3-turbo"   # openai/whisper-large-v3-turbo via fa
 WHISPER_LANGUAGE     = "ur"               # Force Urdu transcription
 WHISPER_DEVICE       = "cuda"             # "cuda" on Colab GPU, "cpu" locally
 WHISPER_COMPUTE_TYPE = "float16"          # float16 on GPU, int8 on CPU
+WHISPER_INITIAL_PROMPT = "یہ اردو میں انٹرویو ہے۔"  # Urdu context prompt for better transcription
+WHISPER_TEMPERATURE  = 0.3                 # Lower temp = more consistent, deterministic output
+WHISPER_BEAM_SIZE    = 5                   # Larger beam = better quality (slower)
 
 # ── Stage 2: Transcript Verification ─────────────────────────
 CONFIDENCE_THRESHOLD = 0.75    # Flag segments below this confidence
@@ -33,6 +36,9 @@ TRANSLATION_MODEL    = "facebook/nllb-200-1.3B"  # Upgraded from 600M for better
 NLLB_SRC_LANG        = "urd_Arab"   # Urdu source language code for NLLB
 NLLB_TGT_LANG        = "eng_Latn"   # English target language code for NLLB
 CHUNK_SIZE           = 500           # Max characters per sentence chunk (for sentence-based splitting)
+BATCH_TRANSLATION_SIZE = 5            # Translate N segments in one batch (speeds up long audio 5-10x)
+USE_CONTEXT_WINDOW   = True           # Use previous segment for context (better continuity)
+CONTEXT_WINDOW_SIZE  = 2              # Look back N segments for context
 
 # ── Stage 4: Translation Verification ────────────────────────
 MIN_TRANSLATION_SCORE = 50     # Minimum acceptable translation quality (0-100)

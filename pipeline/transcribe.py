@@ -48,13 +48,16 @@ def transcribe(audio_path: str) -> dict:
     print("  ✔ Model loaded.")
 
     # ── Run transcription ─────────────────────────────────────
-    print("\n  Transcribing audio... (this may take a few minutes)")
+    print("\n  Transcribing audio... (this may take a few minutes for long audio)")
     segments_iter, info = model.transcribe(
         audio_path,
-        language=config.WHISPER_LANGUAGE,  # Force Urdu
-        word_timestamps=True,              # Word-level timestamps
-        vad_filter=True,                   # Voice Activity Detection (removes silence)
+        language=config.WHISPER_LANGUAGE,          # Force Urdu
+        word_timestamps=True,                       # Word-level timestamps
+        vad_filter=True,                            # Voice Activity Detection (removes silence)
         vad_parameters=dict(min_silence_duration_ms=500),
+        initial_prompt=config.WHISPER_INITIAL_PROMPT,  # Urdu context for better recognition
+        beam_size=config.WHISPER_BEAM_SIZE,         # Higher beam = better quality
+        temperature=config.WHISPER_TEMPERATURE,     # Lower temp = more consistent
     )
 
     # ── Collect segments ──────────────────────────────────────

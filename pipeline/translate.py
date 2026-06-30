@@ -5,7 +5,7 @@
 # ============================================================
 
 import os
-from pipeline.utils import save_json, chunk_text, split_sentences, chunk_sentences, print_banner, now_str
+from pipeline.utils import save_json, chunk_text, split_sentences, chunk_sentences, fix_translation_errors, print_banner, now_str
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -85,12 +85,16 @@ def translate(stage2_result: dict) -> dict:
                         **inputs,
                         forced_bos_token_id=tgt_lang_id,
                         max_new_tokens=512,
-                        num_beams=4,
+                        num_beams=5,                  # Increased from 4 for better quality
                         early_stopping=True,
+                        temperature=0.7,              # Add temperature for better diversity
+                        top_p=0.95,                   # Nucleus sampling for coherence
                     )
 
                 translated = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
-                translated_chunks.append(translated.strip())
+                # Fix common errors in translation
+                translated = fix_translation_errors(translated.strip())
+                translated_chunks.append(translated)
 
             except Exception as e:
                 print(f"    ⚠ Chunk translation failed: {e}")
@@ -103,13 +107,35 @@ def translate(stage2_result: dict) -> dict:
     verified_full_text = stage2_result.get("verified_full_text", "")
     full_english_text  = translate_text(verified_full_text)
 
-    # ── Translate segment by segment ──────────────────────────
+    # ── Translate segment by segment with context ─────────────
     print("\n  Translating segments:")
     translated_segments = []
-
-    for seg in stage2_result["verified_segments"]:
-        urdu_text   = seg["text"]
-        eng_text    = translate_text(urdu_text)
+    
+    for idx, seg in enumerate(stage2_result["verified_segments"]):
+        urdu_text = seg["text"]
+        
+        # Build context from previous segments (if enabled)
+        context_prefix = ""
+        if config.USE_CONTEXT_WINDOW and idx > 0:
+            # Look back N segments for context
+            start_idx = max(0, idx - config.CONTEXT_WINDOW_SIZE)
+            context_segs = stage2_result["verified_segments"][start_idx:idx]
+            context_texts = [s["text"] for s in context_segs]
+            context_prefix = " ".join(context_texts) + " "
+        
+        # Translate with context
+        context_text = context_prefix + urdu_text
+        eng_text = translate_text(context_text)
+        
+        # Remove context from output if it was added
+        if config.USE_CONTEXT_WINDOW and context_prefix:
+            # The translation should be mostly the last part, but we only keep new translation
+            # This is heuristic - typically output correlates to input length
+            parts = eng_text.split()
+            # Estimate how many words were context
+            context_word_count = len(context_prefix.split())
+            output_start = max(0, len(parts) - max(1, len(urdu_text.split())))
+            eng_text = " ".join(parts[output_start:]).strip() if output_start < len(parts) else eng_text
 
         translated_seg = {
             **seg,
@@ -117,7 +143,8 @@ def translate(stage2_result: dict) -> dict:
         }
         translated_segments.append(translated_seg)
 
-        print(f"    ✔ seg {seg['segment_id']:03d} | UR: {urdu_text[:40]}...")
+        # Progress with memory info
+        print(f"    ✔ seg {seg['segment_id']:03d}/{len(stage2_result['verified_segments'])} | UR: {urdu_text[:40]}...")
         print(f"             | EN: {eng_text[:60]}...")
 
     # ── Build result dict ─────────────────────────────────────

@@ -175,3 +175,36 @@ def chunk_sentences(sentences: list, max_chars: int = 500) -> list:
         chunks.append(current_chunk.strip())
     
     return chunks
+
+
+def fix_translation_errors(text: str) -> str:
+    """
+    Fix common Urdu→English translation errors.
+    Patterns for common mistakes from NLLB model.
+    """
+    # Fix common artifacts and repetitions
+    fixes = {
+        r'\b(the\s+){2,}\b': 'the ',              # Remove duplicate "the the"
+        r'\b(is\s+){2,}\b': 'is ',                # Remove duplicate "is is"
+        r'\b(a\s+){2,}\b': 'a ',                  # Remove duplicate "a a"
+        r'(\s+){2,}': ' ',                        # Remove extra spaces
+        r'\s+([.!?,])': r'\1',                    # Remove space before punctuation
+        r'([.!?])\s+([a-z])': r'\1 \2'.capitalize(), # Capitalize after punctuation
+    }
+    
+    for pattern, replacement in fixes.items():
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    
+    # Fix common Urdu words that don't translate well
+    urdu_fixes = {
+        r'\bkya\b': 'what',
+        r'\bjo\b': 'which',
+        r'\bham\b': 'we',
+        r'\bwoh\b': 'that',
+        r'\baur\b': 'and',
+    }
+    
+    for pattern, replacement in urdu_fixes.items():
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    
+    return text.strip()
