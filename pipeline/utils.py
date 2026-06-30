@@ -1,0 +1,89 @@
+# ============================================================
+# pipeline/utils.py — Shared helper functions
+# ============================================================
+
+import os
+import json
+import re
+from datetime import datetime
+
+
+def ensure_dirs(*dirs):
+    """Create output directories if they don't exist."""
+    for d in dirs:
+        os.makedirs(d, exist_ok=True)
+
+
+def save_json(data: dict, path: str, indent: int = 2):
+    """Save a dictionary to a JSON file."""
+    ensure_dirs(os.path.dirname(path))
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=indent)
+    print(f"  ✔ Saved → {path}")
+
+
+def load_json(path: str) -> dict:
+    """Load a JSON file and return as dict."""
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def get_interview_id(audio_path: str) -> str:
+    """Generate a clean interview ID from the audio filename."""
+    basename = os.path.basename(audio_path)
+    name, _ = os.path.splitext(basename)
+    # Replace spaces and special chars with underscore
+    clean = re.sub(r"[^\w]", "_", name)
+    return clean
+
+
+def chunk_text(text: str, max_chars: int = 400) -> list:
+    """
+    Split long text into chunks of max_chars.
+    Tries to split on sentence boundaries (. ! ?) to keep meaning intact.
+    """
+    if len(text) <= max_chars:
+        return [text]
+
+    chunks = []
+    # Split on sentence-ending punctuation
+    sentences = re.split(r'(?<=[.!?۔؟])\s+', text.strip())
+
+    current_chunk = ""
+    for sentence in sentences:
+        if len(current_chunk) + len(sentence) + 1 <= max_chars:
+            current_chunk += (" " if current_chunk else "") + sentence
+        else:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            # If single sentence > max_chars, hard-split it
+            if len(sentence) > max_chars:
+                for i in range(0, len(sentence), max_chars):
+                    chunks.append(sentence[i:i + max_chars])
+            else:
+                current_chunk = sentence
+
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+
+    return chunks
+
+
+def format_timestamp(seconds: float) -> str:
+    """Convert seconds to HH:MM:SS.mmm format."""
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    s = seconds % 60
+    return f"{h:02d}:{m:02d}:{s:06.3f}"
+
+
+def print_banner(stage_num: int, stage_name: str):
+    """Print a clear stage banner to terminal."""
+    print("\n" + "=" * 60)
+    print(f"  STAGE {stage_num}: {stage_name}")
+    print("=" * 60)
+
+
+def now_str() -> str:
+    """Return current datetime as ISO string."""
+    return datetime.now().isoformat()
