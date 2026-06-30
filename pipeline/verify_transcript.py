@@ -45,7 +45,7 @@ def verify_transcript(stage1_result: dict) -> dict:
         verified_seg = {
             **seg,
             "verified_text": f"{flag_tag} {seg['text']}".strip() if is_low else seg["text"],
-            "flagged"      : is_low,
+            "flagged"      : bool(is_low),  # Ensure Python bool
             "flag_reason"  : f"Confidence {conf:.2f} below threshold {threshold}" if is_low else None,
         }
 

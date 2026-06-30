@@ -27,11 +27,28 @@ class NumpyEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+def convert_numpy_types(obj):
+    """Recursively convert numpy types to native Python types."""
+    if isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [convert_numpy_types(item) for item in obj]
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, (np.integer, np.floating)):
+        return obj.item()
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
+
+
 def save_json(data: dict, path: str, indent: int = 2):
     """Save a dictionary to a JSON file with numpy type support."""
     ensure_dirs(os.path.dirname(path))
+    # Convert all numpy types before saving
+    data_converted = convert_numpy_types(data)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=indent, cls=NumpyEncoder)
+        json.dump(data_converted, f, ensure_ascii=False, indent=indent, cls=NumpyEncoder)
     print(f"  ✔ Saved → {path}")
 
 

@@ -93,7 +93,7 @@ def verify_translation(stage3_result: dict) -> dict:
         verified_seg = {
             **seg,
             "verified_english": verified_text,
-            "translation_flagged": is_flagged,
+            "translation_flagged": bool(is_flagged),  # Ensure Python bool
             "translation_issues": issues,
             "translation_quality": seg_quality,
         }
