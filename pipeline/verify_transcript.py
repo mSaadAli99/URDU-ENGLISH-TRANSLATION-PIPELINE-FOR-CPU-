@@ -39,7 +39,7 @@ def verify_transcript(stage1_result: dict) -> dict:
 
     for seg in segments:
         conf      = seg.get("confidence", 0.0)
-        is_low    = conf < threshold
+        is_low    = bool(conf < threshold)  # Convert numpy bool to Python bool
         flag_tag  = "[LOW CONFIDENCE]" if is_low else ""
 
         verified_seg = {

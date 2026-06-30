@@ -6,6 +6,7 @@ import os
 import json
 import re
 from datetime import datetime
+import numpy as np
 
 
 def ensure_dirs(*dirs):
@@ -14,11 +15,23 @@ def ensure_dirs(*dirs):
         os.makedirs(d, exist_ok=True)
 
 
+class NumpyEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle numpy types."""
+    def default(self, obj):
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+        elif isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super().default(obj)
+
+
 def save_json(data: dict, path: str, indent: int = 2):
-    """Save a dictionary to a JSON file."""
+    """Save a dictionary to a JSON file with numpy type support."""
     ensure_dirs(os.path.dirname(path))
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=indent)
+        json.dump(data, f, ensure_ascii=False, indent=indent, cls=NumpyEncoder)
     print(f"  ✔ Saved → {path}")
 
 
