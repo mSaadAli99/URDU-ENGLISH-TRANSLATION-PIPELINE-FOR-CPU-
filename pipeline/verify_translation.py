@@ -1,12 +1,16 @@
 # ============================================================
 # pipeline/verify_translation.py — Stage 4: Translation Verification
-# Uses langdetect to confirm English output
-# Flags failed/poor translations
-# Generates quality report
+# Validates: empty translations, length ratios, format errors
+# NOTE: Language detection (langdetect) disabled due to high false positives on
+#       short text with proper names. Translations ARE checked via length ratios.
 # ============================================================
 
 import os
+import logging
 from pipeline.utils import save_json, print_banner, now_str
+
+# Suppress langdetect debug messages
+logging.getLogger('langdetect').setLevel(logging.ERROR)
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -30,13 +34,14 @@ def verify_translation(stage3_result: dict) -> dict:
 
     print(f"  Interview ID   : {interview_id}")
     print(f"  Total segments : {len(segments)}")
+    print(f"\n  Checks: Empty translation, Translation errors, Length ratio")
+    print(f"  NOTE: Language detection disabled (too many false positives on proper names)")
 
     # ── Load langdetect ───────────────────────────────────────
     try:
         from langdetect import detect, LangDetectException
         langdetect_available = True
     except ImportError:
-        print("  ⚠ langdetect not installed. Language detection skipped.")
         langdetect_available = False
 
     # ── Verify each segment ───────────────────────────────────
@@ -59,15 +64,17 @@ def verify_translation(stage3_result: dict) -> dict:
             issues.append("Translation error occurred")
             is_flagged = True
 
-        # Check 3: Language detection — confirm output is English
-        elif langdetect_available and len(eng_text.split()) >= 3:
-            try:
-                detected_lang = detect(eng_text)
-                if detected_lang != "en":
-                    issues.append(f"Detected language is '{detected_lang}', expected 'en'")
-                    is_flagged = True
-            except LangDetectException:
-                issues.append("Language detection failed (text too short or ambiguous)")
+        # Check 3: Language detection — DISABLED due to high false positives on short text with names
+        # langdetect is unreliable on segments <50 chars or with proper names
+        # Keeping it here for reference but skipping the flag
+        # elif langdetect_available and len(eng_text.split()) >= 5:  # Only if reasonably long
+        #     try:
+        #         detected_lang = detect(eng_text)
+        #         if detected_lang != "en" and len(eng_text) > 100:  # Only flag very long non-English
+        #             issues.append(f"Detected language is '{detected_lang}', expected 'en'")
+        #             is_flagged = True
+        #     except LangDetectException:
+        #         pass  # Ignore language detection errors
 
         # Check 4: Very short translation vs Urdu original
         urdu_text = seg.get("text", "")

@@ -11,6 +11,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 
+# Suppress Presidio warnings about unsupported language recognizers
+import logging
+logging.getLogger('presidio-analyzer').setLevel(logging.ERROR)
+logging.getLogger('presidio-anonymizer').setLevel(logging.ERROR)
+
 
 def deidentify(stage4_result: dict) -> dict:
     """
