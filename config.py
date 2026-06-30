@@ -29,10 +29,10 @@ CONFIDENCE_THRESHOLD = 0.75    # Flag segments below this confidence
 MIN_QUALITY_SCORE    = 60      # Minimum acceptable transcript quality (0-100)
 
 # ── Stage 3: Translation Model ───────────────────────────────
-TRANSLATION_MODEL    = "facebook/nllb-200-distilled-600M"
+TRANSLATION_MODEL    = "facebook/nllb-200-1.3B"  # Upgraded from 600M for better quality
 NLLB_SRC_LANG        = "urd_Arab"   # Urdu source language code for NLLB
 NLLB_TGT_LANG        = "eng_Latn"   # English target language code for NLLB
-CHUNK_SIZE           = 400           # Max characters per translation chunk
+CHUNK_SIZE           = 500           # Max characters per sentence chunk (for sentence-based splitting)
 
 # ── Stage 4: Translation Verification ────────────────────────
 MIN_TRANSLATION_SCORE = 50     # Minimum acceptable translation quality (0-100)

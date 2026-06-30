@@ -5,7 +5,7 @@
 # ============================================================
 
 import os
-from pipeline.utils import save_json, chunk_text, print_banner, now_str
+from pipeline.utils import save_json, chunk_text, split_sentences, chunk_sentences, print_banner, now_str
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -62,8 +62,9 @@ def translate(stage2_result: dict) -> dict:
         if not urdu_text.strip():
             return ""
 
-        # Split into manageable chunks
-        chunks = chunk_text(urdu_text, max_chars=config.CHUNK_SIZE)
+        # Split into sentences first, then chunk to preserve context
+        sentences = split_sentences(urdu_text)
+        chunks = chunk_sentences(sentences, max_chars=config.CHUNK_SIZE)
         translated_chunks = []
 
         for chunk in chunks:

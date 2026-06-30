@@ -117,3 +117,61 @@ def print_banner(stage_num: int, stage_name: str):
 def now_str() -> str:
     """Return current datetime as ISO string."""
     return datetime.now().isoformat()
+
+
+def split_sentences(text: str) -> list:
+    """
+    Split text into sentences, respecting Urdu and English punctuation.
+    Handles: . ! ? ۔ ؟ and similar markers.
+    """
+    # Replace Urdu punctuation with English equivalents for consistency
+    text = text.replace('۔', '.').replace('؟', '?')
+    
+    # Split on sentence boundaries: space after punctuation
+    # Lookahead regex: split on . ! ? followed by space
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    
+    # Clean up empty sentences
+    return [s.strip() for s in sentences if s.strip()]
+
+
+def chunk_sentences(sentences: list, max_chars: int = 500) -> list:
+    """
+    Combine sentences into chunks without exceeding max_chars.
+    Preserves sentence boundaries for better translation context.
+    
+    Args:
+        sentences: List of sentence strings
+        max_chars: Maximum characters per chunk
+    
+    Returns:
+        List of chunked text strings
+    """
+    chunks = []
+    current_chunk = ""
+    
+    for sentence in sentences:
+        # Add sentence to chunk if it fits
+        test_chunk = current_chunk + (" " if current_chunk else "") + sentence
+        
+        if len(test_chunk) <= max_chars:
+            current_chunk = test_chunk
+        else:
+            # Current chunk is full, save it
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            
+            # If single sentence exceeds max_chars, it must be chunked
+            if len(sentence) > max_chars:
+                # Hard split at character boundary
+                for i in range(0, len(sentence), max_chars):
+                    chunks.append(sentence[i:i + max_chars])
+                current_chunk = ""
+            else:
+                current_chunk = sentence
+    
+    # Append remaining chunk
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+    
+    return chunks
