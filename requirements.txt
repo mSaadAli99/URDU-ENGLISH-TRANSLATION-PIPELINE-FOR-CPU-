@@ -5,8 +5,7 @@ torch==2.4.0
 sentencepiece==0.2.0
 sacremoses==0.1.1
 
-# ── Translation ───────────────────────────────────────────────
-sacrebleu==2.4.3
+# ── Translation quality check ──────────────────────────────
 langdetect==1.0.9
 
 # ── De-identification ─────────────────────────────────────────
@@ -16,6 +15,9 @@ spacy==3.7.6
 
 # ── Document Export ───────────────────────────────────────────
 python-docx==1.1.2
+
+# ── Audio download (optional, for scripts/download_audio.py) ─
+yt-dlp
 
 # ── Utilities ─────────────────────────────────────────────────
 tqdm==4.66.5

@@ -1,0 +1,38 @@
+# ── Runtime output folders ────────────────────────────────────
+audio/
+outputs/
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual environments ───────────────────────────────────────
+venv/
+.venv/
+env/
+.env
+
+# ── HuggingFace / model caches ────────────────────────────────
+.cache/
+*.bin
+*.safetensors
+*.gguf
+
+# ── Jupyter checkpoints ───────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── OS junk ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp

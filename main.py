@@ -11,6 +11,11 @@ import os
 import argparse
 import traceback
 
+# Force UTF-8 output on Windows so Unicode symbols (✔ ⚠ etc.) print correctly
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # ── Ensure project root is on path ───────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config
@@ -32,9 +37,9 @@ def run_pipeline(audio_path: str, start_stage: int = 1):
         start_stage  : Which stage to start from (1-6).
                        Stages 2-6 require the previous stage's JSON to exist.
     """
-    print("\n" + "★" * 60)
+    print("\n" + "=" * 60)
     print("  URDU INTERVIEW PROCESSING PIPELINE")
-    print("★" * 60)
+    print("=" * 60)
     print(f"  Audio file  : {audio_path}")
     print(f"  Start stage : {start_stage}")
     print(f"  Started at  : {now_str()}")
@@ -171,10 +176,10 @@ def run_pipeline(audio_path: str, start_stage: int = 1):
     # ══════════════════════════════════════════════════════════
     # DONE
     # ══════════════════════════════════════════════════════════
-    print("\n" + "★" * 60)
-    print("  ✔ PIPELINE COMPLETE!")
+    print("\n" + "=" * 60)
+    print("  PIPELINE COMPLETE!")
     print(f"  Outputs saved in: {config.OUTPUT_DIR}")
-    print("★" * 60 + "\n")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

@@ -177,25 +177,138 @@ def chunk_sentences(sentences: list, max_chars: int = 500) -> list:
     return chunks
 
 
+def is_urdu_text(text: str, threshold: float = 0.25) -> bool:
+    """
+    Return True if the text is predominantly Urdu (Arabic-script).
+    threshold = minimum fraction of Urdu Unicode characters to classify as Urdu.
+    Mixed segments that are mostly English return False → pass-through in Stage 3.
+    """
+    if not text or not text.strip():
+        return False
+    urdu_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
+    return urdu_chars / len(text.strip()) >= threshold
+
+
+def collapse_repetitions(segments: list, max_consecutive: int = 3) -> list:
+    """
+    Remove Whisper hallucination loops from a list of segment dicts.
+
+    A segment is considered a repetition when the same normalised text
+    has appeared >= max_consecutive times consecutively.  The first
+    occurrence is kept; subsequent duplicates are dropped and their
+    duration is merged into the kept segment's end time.
+
+    Args:
+        segments: list of segment dicts (must have keys 'text', 'end')
+        max_consecutive: how many repeats before we start dropping
+
+    Returns:
+        cleaned list of segment dicts
+    """
+    if not segments:
+        return segments
+
+    def _norm(t: str) -> str:
+        return re.sub(r'\s+', ' ', t.strip().lower())
+
+    cleaned = []
+    run_text  = None
+    run_count = 0
+    run_start_idx = 0  # index in `cleaned` of the first occurrence of current run
+
+    for seg in segments:
+        norm = _norm(seg.get("text", ""))
+
+        if norm == run_text:
+            run_count += 1
+            if run_count >= max_consecutive:
+                # Extend the kept segment's end time so timestamps stay accurate
+                if cleaned:
+                    cleaned[-1] = {**cleaned[-1], "end": seg["end"], "end_fmt": seg["end_fmt"]}
+                # Drop this duplicate
+                continue
+        else:
+            run_text  = norm
+            run_count = 1
+
+        cleaned.append(seg)
+
+    return cleaned
+
+
+def is_urdu_text(text: str, threshold: float = 0.25) -> bool:
+    """
+    Return True when the text is predominantly Urdu (Arabic script).
+    threshold: minimum fraction of Urdu-script characters required.
+    Mixed segments below threshold are treated as English (pass-through).
+    """
+    if not text.strip():
+        return False
+    urdu_chars = sum(1 for c in text if "\u0600" <= c <= "\u06FF")
+    return urdu_chars / len(text.strip()) >= threshold
+
+
+def collapse_repetitions(segments: list, max_consecutive: int = 3) -> list:
+    """
+    Remove Whisper hallucination loops where the same phrase repeats back-to-back.
+
+    A segment is dropped when its normalised text matches the previous
+    `max_consecutive` or more consecutive segments. The first occurrence is kept;
+    duplicates beyond that are marked as hallucinations and excluded.
+
+    Returns a new list of segment dicts. Removed segments get a
+    'hallucination': True key so callers can report on them.
+    """
+    if not segments:
+        return segments
+
+    def _normalise(t: str) -> str:
+        return re.sub(r"\s+", " ", t.strip().lower())
+
+    kept: list = []
+    run_text: str = ""
+    run_count: int = 0
+
+    for seg in segments:
+        norm = _normalise(seg.get("text", ""))
+        if norm == run_text:
+            run_count += 1
+        else:
+            run_text = norm
+            run_count = 1
+
+        if run_count <= max_consecutive:
+            kept.append(seg)
+        else:
+            # Mark as hallucination but don't include in output
+            pass  # silently drop; caller already knows via return length diff
+
+    return kept
+
+
 def fix_translation_errors(text: str) -> str:
     """
-    Fix common Urdu→English translation errors.
-    Patterns for common mistakes from NLLB model.
+    Fix common Urdu→English translation errors from NLLB output.
     """
-    # Fix common artifacts and repetitions
-    fixes = {
-        r'\b(the\s+){2,}\b': 'the ',              # Remove duplicate "the the"
-        r'\b(is\s+){2,}\b': 'is ',                # Remove duplicate "is is"
-        r'\b(a\s+){2,}\b': 'a ',                  # Remove duplicate "a a"
-        r'(\s+){2,}': ' ',                        # Remove extra spaces
-        r'\s+([.!?,])': r'\1',                    # Remove space before punctuation
-        r'([.!?])\s+([a-z])': r'\1 \2'.capitalize(), # Capitalize after punctuation
-    }
-    
-    for pattern, replacement in fixes.items():
-        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
-    
-    # Fix common Urdu words that don't translate well
+    # Remove duplicate articles / conjunctions
+    for word in ("the", "is", "a", "and", "of"):
+        text = re.sub(rf'\b({word}\s+){{2,}}', f'{word} ', text, flags=re.IGNORECASE)
+
+    # Collapse multiple spaces
+    text = re.sub(r' {2,}', ' ', text)
+
+    # Remove space before punctuation
+    text = re.sub(r'\s+([.!?,])', r'\1', text)
+
+    # Capitalise the first letter after sentence-ending punctuation
+    # (use a lambda so the captured group is actually upper-cased)
+    text = re.sub(
+        r'([.!?])\s+([a-z])',
+        lambda m: f"{m.group(1)} {m.group(2).upper()}",
+        text,
+    )
+
+    # Untranslated Urdu function words that NLLB sometimes leaves in
     urdu_fixes = {
         r'\bkya\b': 'what',
         r'\bjo\b': 'which',
@@ -203,8 +316,7 @@ def fix_translation_errors(text: str) -> str:
         r'\bwoh\b': 'that',
         r'\baur\b': 'and',
     }
-    
     for pattern, replacement in urdu_fixes.items():
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
-    
+
     return text.strip()

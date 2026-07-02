@@ -152,7 +152,7 @@ def deidentify(stage4_result: dict) -> dict:
         "unique_entities_removed"      : unique_entities,
         # Pass everything forward
         "urdu_full_text"               : stage4_result["urdu_full_text"],
-        "verified_urdu_full"           : stage4_result.get("verified_english_full",""),
+        "verified_urdu_full"           : stage4_result.get("urdu_full_text", ""),
         "english_full_text"            : stage4_result["english_full_text"],
         "verified_english_full"        : stage4_result["verified_english_full"],
         "transcript_quality_score"     : stage4_result["transcript_quality_score"],

@@ -1,10 +1,10 @@
-# 🎙️ Urdu Interview Processing Pipeline
+# Urdu Interview Processing Pipeline
 
 A complete end-to-end pipeline for processing Urdu audio interviews into de-identified English qualitative datasets.
 
 ---
 
-## 📋 Pipeline Stages
+## Pipeline Stages
 
 ```
 Raw Urdu Audio
@@ -13,9 +13,9 @@ Stage 1 → Urdu Transcription        (whisper-large-v3-turbo)
       ↓
 Stage 2 → Verify Urdu Transcript    (confidence scoring)
       ↓
-Stage 3 → Urdu → English            (facebook/nllb-200-distilled-600M)
+Stage 3 → Urdu → English            (facebook/nllb-200-1.3B)
       ↓
-Stage 4 → Verify English            (langdetect)
+Stage 4 → Verify English            (length-ratio checks)
       ↓
 Stage 5 → De-identification         (Microsoft Presidio + spaCy)
       ↓
@@ -24,17 +24,16 @@ Stage 6 → Final Export              (JSON + DOCX)
 
 ---
 
-## 🚀 Quick Start (Google Colab — Recommended)
+## Quick Start — Google Colab (Recommended)
 
 1. Open `notebooks/colab_pipeline.ipynb` in Google Colab
 2. Set runtime to **T4 GPU** (Runtime → Change runtime type)
-3. Run cells one by one
-4. Upload your audio when prompted
-5. Download outputs at the end
+3. Run cells one by one — Cell 4 downloads a sample audio from YouTube automatically
+4. Download the zipped outputs at the end
 
 ---
 
-## 💻 Local Setup (VS Code — CPU only, for testing)
+## Local Setup
 
 ```bash
 # 1. Create virtual environment
@@ -46,21 +45,21 @@ source venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
 python -m spacy download en_core_web_lg
 
-# 3. Edit config.py — change device to CPU
-WHISPER_DEVICE       = "cpu"
-WHISPER_COMPUTE_TYPE = "int8"
-WHISPER_MODEL        = "medium"   # Use medium for CPU speed
+# 3. (Optional) Download sample audio
+python scripts/download_audio.py
 
-# 4. Run pipeline
+# 4. Run pipeline — device is auto-detected (GPU if available, CPU otherwise)
 python main.py audio/your_interview.mp3
 
-# 5. Resume from a specific stage (if interrupted)
+# 5. Resume from a specific stage after interruption
 python main.py audio/your_interview.mp3 --start-stage 3
 ```
 
+> **CPU note:** On CPU the pipeline will use `int8` quantisation automatically (no manual config edit needed). Expect ~5–10× slower transcription vs GPU.
+
 ---
 
-## 📁 Folder Structure
+## Folder Structure
 
 ```
 urdu-pipeline/
@@ -80,6 +79,8 @@ urdu-pipeline/
 │   ├── deidentify.py              ← Stage 5
 │   ├── export.py                  ← Stage 6
 │   └── utils.py                   ← Shared helpers
+├── scripts/
+│   └── download_audio.py          ← Download sample audio from YouTube
 ├── notebooks/
 │   └── colab_pipeline.ipynb       ← Google Colab notebook
 ├── main.py                        ← Run full pipeline
@@ -89,35 +90,38 @@ urdu-pipeline/
 
 ---
 
-## ⚙️ Configuration (config.py)
+## Configuration (config.py)
 
 | Setting | Default | Description |
 |---|---|---|
 | `WHISPER_MODEL` | `large-v3-turbo` | ASR model size |
-| `WHISPER_DEVICE` | `cuda` | `cuda` or `cpu` |
-| `TRANSLATION_MODEL` | `facebook/nllb-200-distilled-600M` | Translation model |
-| `CONFIDENCE_THRESHOLD` | `0.75` | Flag segments below this |
-| `CHUNK_SIZE` | `400` | Max chars per translation chunk |
+| `WHISPER_DEVICE` | auto-detected | `cuda` if GPU found, else `cpu` |
+| `WHISPER_COMPUTE_TYPE` | auto-detected | `float16` on GPU, `int8` on CPU |
+| `TRANSLATION_MODEL` | `facebook/nllb-200-1.3B` | Translation model |
+| `CONFIDENCE_THRESHOLD` | `0.75` | Flag transcript segments below this |
+| `CHUNK_SIZE` | `500` | Max chars per translation chunk |
+| `BATCH_TRANSLATION_SIZE` | `5` | Chunks per NLLB batch call |
 
 ---
 
-## 📦 Models Downloaded
+## Models Downloaded Automatically
 
 | Stage | Model | Size |
 |---|---|---|
 | ASR | whisper-large-v3-turbo | ~800 MB |
-| Translation | nllb-200-distilled-600M | ~1.2 GB |
+| Translation | facebook/nllb-200-1.3B | ~2.5 GB |
 | De-ID | spaCy en_core_web_lg | ~560 MB |
 
 ---
 
-## 📄 Final Output
+## Final Output
 
 **JSON** — `outputs/6_final_dataset/{id}_final_dataset.json`
-- All text at each stage
-- Quality scores
-- Entities removed list
-- Flagged segments
+- All text at each pipeline stage
+- Quality scores (transcript + translation)
+- Full entity removal list
+- Flagged segments from both verification stages
+- Segment-level data with timestamps
 
 **DOCX** — `outputs/6_final_dataset/{id}_final_dataset.docx`
 - Title page

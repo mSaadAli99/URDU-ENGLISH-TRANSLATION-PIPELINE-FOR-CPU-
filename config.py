@@ -20,19 +20,40 @@ STAGE6_DIR = os.path.join(OUTPUT_DIR, "6_final_dataset")
 
 # ── Stage 1: ASR Model ───────────────────────────────────────
 WHISPER_MODEL        = "large-v3-turbo"   # openai/whisper-large-v3-turbo via faster-whisper
-WHISPER_LANGUAGE     = "ur"               # Force Urdu transcription
-WHISPER_DEVICE       = "cuda"             # "cuda" on Colab GPU, "cpu" locally
-WHISPER_COMPUTE_TYPE = "float16"          # float16 on GPU, int8 on CPU
-WHISPER_INITIAL_PROMPT = "یہ اردو میں انٹرویو ہے۔"  # Urdu context prompt for better transcription
-WHISPER_TEMPERATURE  = 0.3                 # Lower temp = more consistent, deterministic output
-WHISPER_BEAM_SIZE    = 5                   # Larger beam = better quality (slower)
+# None = auto-detect language per segment (correct for code-switched Urdu/English interviews)
+# Set to "ur" only if the entire audio is Urdu with no English
+WHISPER_LANGUAGE     = None
+# Neutral prompt for mixed interviews — does NOT bias toward one language
+WHISPER_INITIAL_PROMPT = "This is a research interview. The speakers may use both Urdu and English."
+WHISPER_TEMPERATURE  = 0.0                 # 0 = greedy / most deterministic; reduces hallucination loops
+WHISPER_BEAM_SIZE    = 5                   # Higher beam = better quality
+
+# ── Stage 1: Repetition / hallucination filter ────────────────
+# Whisper sometimes loops the same phrase; collapse runs longer than this
+REPETITION_MAX_CONSECUTIVE = 3   # Flag a segment if same text appeared N+ times in a row
+
+# Auto-detect GPU; fall back to CPU gracefully
+try:
+    import torch as _torch
+    if _torch.cuda.is_available():
+        WHISPER_DEVICE       = "cuda"
+        WHISPER_COMPUTE_TYPE = "float16"   # float16 is fast on GPU
+    else:
+        WHISPER_DEVICE       = "cpu"
+        WHISPER_COMPUTE_TYPE = "int8"      # int8 is the only quantisation faster-whisper supports on CPU
+except ImportError:
+    WHISPER_DEVICE       = "cpu"
+    WHISPER_COMPUTE_TYPE = "int8"
 
 # ── Stage 2: Transcript Verification ─────────────────────────
-CONFIDENCE_THRESHOLD = 0.75    # Flag segments below this confidence
+# Lowered from 0.75 — mixed-language audio legitimately scores 0.60-0.75
+CONFIDENCE_THRESHOLD = 0.60    # Flag segments below this confidence
 MIN_QUALITY_SCORE    = 60      # Minimum acceptable transcript quality (0-100)
 
 # ── Stage 3: Translation Model ───────────────────────────────
-TRANSLATION_MODEL    = "facebook/nllb-200-1.3B"  # Upgraded from 600M for better quality
+TRANSLATION_MODEL    = "facebook/nllb-200-1.3B"  # Best quality — use on Colab GPU
+# Lighter fallback for local CPU when RAM is limited (~300 MB vs ~2.5 GB)
+CPU_TRANSLATION_MODEL = "Helsinki-NLP/opus-mt-ur-en"
 NLLB_SRC_LANG        = "urd_Arab"   # Urdu source language code for NLLB
 NLLB_TGT_LANG        = "eng_Latn"   # English target language code for NLLB
 CHUNK_SIZE           = 500           # Max characters per sentence chunk (for sentence-based splitting)
