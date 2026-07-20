@@ -133,7 +133,7 @@ def find_reference_span(
     *,
     language: Language = "english",
     anchor_words: int = 10,
-    min_match_ratio: float = 0.35,
+    min_match_ratio: float = 0.15,
 ) -> AlignmentResult:
     """
     Locate the best-matching span in reference for a hypothesis snippet.
