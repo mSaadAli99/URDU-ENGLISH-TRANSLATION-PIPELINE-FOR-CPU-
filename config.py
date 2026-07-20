@@ -23,11 +23,11 @@ STAGE6_DIR = os.path.join(OUTPUT_DIR, "6_final_dataset")
 # GPU: faster-whisper + float16
 WHISPER_MODEL        = "large-v3-turbo"   # openai/whisper-large-v3-turbo via faster-whisper
 WHISPER_BACKEND      = "faster-whisper"
-# None = auto-detect language per segment (correct for code-switched Urdu/English interviews)
-# Set to "ur" only if the entire audio is Urdu with no English
-WHISPER_LANGUAGE     = None
-# Neutral prompt for mixed interviews — does NOT bias toward one language
-WHISPER_INITIAL_PROMPT = "This is a research interview. The speakers may use both Urdu and English."
+# "ur" = force Urdu transcription for the full audio (recommended for this pipeline)
+# None = auto-detect per segment (can mis-label Urdu speech as English)
+WHISPER_LANGUAGE     = "ur"
+# Bias Whisper toward Urdu script output
+WHISPER_INITIAL_PROMPT = "یہ ایک اردو زبان کا انٹرویو ہے۔ مکمل گفتگو اردو رسم الخط میں لکھی جائے۔"
 # Temperature fallback list: Whisper retries at higher temperatures when a segment scores poorly.
 # 0.0 (greedy) is tried first; if compression_ratio or log_prob is bad, it falls back in order.
 WHISPER_TEMPERATURE  = [0.0, 0.2, 0.4, 0.6]

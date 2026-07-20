@@ -73,9 +73,9 @@ def transcribe(audio_path: str) -> dict:
     """
     Stage 1: Transcribe audio using faster-whisper.
 
-    Language is auto-detected per segment when config.WHISPER_LANGUAGE
-    is None — the correct setting for code-switched Urdu/English
-    interviews.  All five quality improvements are applied in sequence.
+    Uses config.WHISPER_LANGUAGE ("ur" by default) to force Urdu ASR.
+    Set WHISPER_LANGUAGE = None in config only if you need per-segment
+    auto-detection for heavily code-switched audio.
     """
     print_banner(1, "TRANSCRIPTION (ASR)")
 
@@ -170,7 +170,7 @@ def transcribe(audio_path: str) -> dict:
             "avg_logprob"   : round(getattr(seg, "avg_logprob", -1.0), 4),
             "no_speech_prob": round(getattr(seg, "no_speech_prob", 0.0), 4),
             "language"      : seg_lang,
-            "is_urdu"       : is_urdu_text(text),
+            "is_urdu"       : True if config.WHISPER_LANGUAGE == "ur" else is_urdu_text(text),
             "words"         : [
                 {
                     "word"      : w.word,
