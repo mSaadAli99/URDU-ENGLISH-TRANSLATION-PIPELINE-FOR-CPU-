@@ -75,8 +75,8 @@ MIN_QUALITY_SCORE    = 60      # Minimum acceptable transcript quality (0-100)
 
 # ── Stage 3: Translation Model ───────────────────────────────
 TRANSLATION_MODEL    = "facebook/nllb-200-1.3B"  # Best quality — use on Colab GPU
-# Lighter fallback for local CPU when RAM is limited (~300 MB vs ~2.5 GB)
-CPU_TRANSLATION_MODEL = "Helsinki-NLP/opus-mt-ur-en"
+# Lighter fallback for local CPU when RAM is limited (~1.2 GB vs ~2.5 GB)
+CPU_TRANSLATION_MODEL = "facebook/nllb-200-distilled-600M"
 NLLB_SRC_LANG        = "urd_Arab"   # Urdu source language code for NLLB
 NLLB_TGT_LANG        = "eng_Latn"   # English target language code for NLLB
 CHUNK_SIZE           = 500           # Max characters per sentence chunk (for sentence-based splitting)
